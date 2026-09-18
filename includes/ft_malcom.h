@@ -56,6 +56,11 @@ struct __attribute__((packed)) arp_header {
 	unsigned char	ar_tpa[4];
 };
 
+struct addr_data {
+	struct in_addr ip;
+	unsigned char mac[6];
+};
+
 int arg_check(char *argv[], struct in_addr *s_ip, struct in_addr *t_ip);
 int err(const char *str, const char *err_str);
 int parse_mac(char *str, unsigned char mac[6]);

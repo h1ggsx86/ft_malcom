@@ -41,5 +41,5 @@ int parse_mac(char *str, unsigned char mac[6])
 		mac[i] = (hex_val(parts[i][0]) << 4) | hex_val(parts[i][1]);
 	}
 	free_dtab(parts);
-	return (i == 6);
+	return (i == 5);
 }

@@ -1,0 +1,6 @@
+mac source : #
+ip source : 10.42.0.10
+
+mac target : #
+ip target : 10.42.0.20
+
