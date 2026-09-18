@@ -1,6 +1,6 @@
-mac source : #
+mac source : 08:00:27:2b:53:e5
 ip source : 10.42.0.10
 
-mac target : #
+mac target : 08:00:27:a0:41:78
 ip target : 10.42.0.20
 

@@ -36,7 +36,7 @@
 #define ARP_REQUEST 0x01
 #define ARP_REPLY 0x02
 
-extern volatile sig_atomic_t s_flag;
+extern volatile struct g_state;
 
 struct __attribute__((packed)) eth_header {
 	unsigned char eth_dha[6];
@@ -59,6 +59,11 @@ struct __attribute__((packed)) arp_header {
 struct addr_data {
 	struct in_addr ip;
 	unsigned char mac[6];
+};
+
+struct g_state {
+	sig_atomic_t s_flag;
+	int verbose;
 };
 
 int arg_check(char *argv[], struct in_addr *s_ip, struct in_addr *t_ip);

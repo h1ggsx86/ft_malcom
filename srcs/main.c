@@ -1,6 +1,6 @@
 #include "ft_malcom.h"
 
-volatile sig_atomic_t s_flag = 1;
+volatile struct g_state g_program;
 
 int find_interface(struct ifaddrs *interfaces, struct ifaddrs **returned)
 {
@@ -44,7 +44,7 @@ int rcv_set_timeout(int sock_fd)
 void sig_handler(int signo)
 {
 	(void)signo;
-	s_flag = 0;
+	g_program.s_flag = 0;
 	ft_putstr_fd("\tSIGINT intercepted.\n", STDERR_FILENO);
 }
 
@@ -88,6 +88,8 @@ int init_socket(int *if_index)
 		cleanup(interfaces, packet_socket);
 		return -1;
 	}
+
+	freeifaddrs(interfaces);
 
 	return packet_socket;
 }
@@ -143,15 +145,36 @@ int send_reply(struct addr_data st_data[2], int if_index, int packet_socket)
 	return EXIT_SUCCESS;
 }
 
+int check_verbose(const char *argv)
+{
+	if (!ft_strcmp("-v", argv)) {
+		g_program.verbose = 1;
+		return EXIT_SUCCESS;
+	}
+	else if (argv[0] == '-') {
+		printf("ft_malcom: invalid flag (%s) only flag is `-v'\n");
+	}
+
+	return EXIT_FAILURE;
+}
+
 int main(int argc, char *argv[])
 {
 	struct addr_data st_data[2];
 	struct sigaction sa;
 	int packet_socket, if_index;
 
-	if (argc != 5) {
-		printf("ft_malcom: not enough arguments.\nUsage: sudo ./ft_malcom <source ip> <source mac> <target ip> <target mac>\n");
+	g_program.s_flag = 1;
+
+	if (argc < 5 || argc > 6) {
+		printf("ft_malcom: wrong number of arguments.\nUsage: sudo ./ft_malcom <source ip> <source mac> <target ip> <target mac>\n");
 		return EXIT_FAILURE;
+	}
+	else if (argc == 6) {
+		if (check_verbose(*(argv + 1))) {
+			printf("ft_malcom: wrong number of arguments.\nUsage: sudo ./ft_malcom <source ip> <source mac> <target ip> <target mac>\n");
+			return EXIT_FAILURE;
+		}
 	}
 
 	if (arg_check(argv + 1, &st_data[0].ip, &st_data[1].ip)) return EXIT_FAILURE;
@@ -172,7 +195,7 @@ int main(int argc, char *argv[])
 	if (packet_socket == -1)
 		return EXIT_FAILURE;
 
-	while (s_flag) {
+	while (g_program.s_flag) {
 		ssize_t r;
 		unsigned char buffer[BUFF_SIZE];
 		r = recvfrom(packet_socket, buffer, BUFF_SIZE, 0, NULL, NULL);
@@ -205,17 +228,16 @@ int main(int argc, char *argv[])
 					arp_req->ar_sha[5]);
 		char str[INET_ADDRSTRLEN];
 		if (inet_ntop(AF_INET, &sender_ip, str, INET_ADDRSTRLEN) == NULL) {
-			s_flag = 0;
 			err("inet_ntop", strerror(errno));
 			continue;
 		}
 		else
 			printf("\tip address of request:  %s\n", str);
 
-		if (send_reply(st_data, if_index, packet_socket) == 0)
+		if (send_reply(st_data, if_index, packet_socket) == 1)
 			break;
 		
-		s_flag = 0;
+		g_program.s_flag = 0;
 	}
 
 	close(packet_socket);
