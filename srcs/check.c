@@ -54,3 +54,18 @@ int arg_check(char *argv[], struct in_addr *s_ip, struct in_addr *t_ip)
 	if (check_mac(argv[3])) return 1;
 	return 0;
 }
+
+int check_verbose(char *argv)
+{
+	if (!ft_strcmp("-v", argv)) {
+		g_program.verbose = 1;
+		return EXIT_SUCCESS;
+	}
+	else if (argv[0] == '-') {
+		printf("ft_malcom: invalid flag (%s) only flag is `-v'\n", argv);
+		return EXIT_FAILURE;
+	}
+
+	printf("ft_malcom: wrong number of arguments.\nUsage: sudo ./ft_malcom [OPTION] <source ip> <source mac> <target ip> <target mac>\n");
+	return EXIT_FAILURE;
+}

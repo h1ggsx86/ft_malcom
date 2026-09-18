@@ -69,6 +69,8 @@ struct g_state {
 int arg_check(char *argv[], struct in_addr *s_ip, struct in_addr *t_ip);
 int err(const char *str, const char *err_str);
 int parse_mac(char *str, unsigned char mac[6]);
+int check_verbose(char *argv);
+
 void free_dtab(char **dtab);
 void cleanup(struct ifaddrs *interfaces, int fd);
 
