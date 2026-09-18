@@ -36,7 +36,7 @@
 #define ARP_REQUEST 0x01
 #define ARP_REPLY 0x02
 
-extern volatile struct g_state;
+extern volatile struct g_state g_program;
 
 struct __attribute__((packed)) eth_header {
 	unsigned char eth_dha[6];

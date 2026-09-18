@@ -145,14 +145,14 @@ int send_reply(struct addr_data st_data[2], int if_index, int packet_socket)
 	return EXIT_SUCCESS;
 }
 
-int check_verbose(const char *argv)
+int check_verbose(char *argv)
 {
 	if (!ft_strcmp("-v", argv)) {
 		g_program.verbose = 1;
 		return EXIT_SUCCESS;
 	}
 	else if (argv[0] == '-') {
-		printf("ft_malcom: invalid flag (%s) only flag is `-v'\n");
+		printf("ft_malcom: invalid flag (%s) only flag is `-v'\n", argv);
 	}
 
 	return EXIT_FAILURE;
