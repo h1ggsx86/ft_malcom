@@ -89,6 +89,7 @@ int init_socket(int *if_index)
 		return -1;
 	}
 
+	return packet_socket;
 }
 
 int send_reply(struct addr_data st_data[2], int if_index, int packet_socket)
