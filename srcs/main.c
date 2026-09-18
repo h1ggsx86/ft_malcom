@@ -153,8 +153,10 @@ int check_verbose(char *argv)
 	}
 	else if (argv[0] == '-') {
 		printf("ft_malcom: invalid flag (%s) only flag is `-v'\n", argv);
+		return EXIT_FAILURE;
 	}
 
+	printf("ft_malcom: wrong number of arguments.\nUsage: sudo ./ft_malcom [OPTION] <source ip> <source mac> <target ip> <target mac>\n");
 	return EXIT_FAILURE;
 }
 
@@ -167,15 +169,17 @@ int main(int argc, char *argv[])
 	g_program.s_flag = 1;
 
 	if (argc < 5 || argc > 6) {
-		printf("ft_malcom: wrong number of arguments.\nUsage: sudo ./ft_malcom <source ip> <source mac> <target ip> <target mac>\n");
+		printf("ft_malcom: wrong number of arguments.\nUsage: sudo ./ft_malcom [OPTION] <source ip> <source mac> <target ip> <target mac>\n");
 		return EXIT_FAILURE;
 	}
 	else if (argc == 6) {
 		if (check_verbose(*(argv + 1))) {
-			printf("ft_malcom: wrong number of arguments.\nUsage: sudo ./ft_malcom <source ip> <source mac> <target ip> <target mac>\n");
 			return EXIT_FAILURE;
 		}
 	}
+
+	if (g_program.verbose)
+		argv += 1;
 
 	if (arg_check(argv + 1, &st_data[0].ip, &st_data[1].ip)) return EXIT_FAILURE;
 
