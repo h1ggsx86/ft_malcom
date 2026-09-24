@@ -9,7 +9,7 @@ INC_DIR		= includes
 SRC_DIR		= srcs
 
 LIBFT_LIB	= libft/libft.a
-SRC		= $(SRC_DIR)/main.c $(SRC_DIR)/check.c $(SRC_DIR)/utils.c
+SRC		= $(SRC_DIR)/main.c $(SRC_DIR)/check.c $(SRC_DIR)/utils.c $(SRC_DIR)/print.c
 SRC_OBJ	= $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
 all: $(NAME)

@@ -74,5 +74,8 @@ int check_verbose(char *argv);
 void free_dtab(char **dtab);
 void cleanup(struct ifaddrs *interfaces, int fd);
 
+void print_mac(unsigned char mac[6]);
+void print_packet(struct eth_header *eth, struct arp_header *arp, int type);
+
 
 #endif

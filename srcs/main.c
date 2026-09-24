@@ -132,6 +132,8 @@ int send_reply(struct addr_data st_data[2], int if_index, int packet_socket)
 
 	ft_memcpy(&socket_address.sll_addr, st_data[1].mac, MAC_LENGTH);
 
+	if (g_program.verbose) print_packet(eth_rep, arp_rep, ARP_REPLY);
+
 	/* Send the response */
 	size_t r_buffer_size = sizeof(struct eth_header) + sizeof(struct arp_header);
 	if (sendto(packet_socket, r_buffer, r_buffer_size, 0,
@@ -193,7 +195,7 @@ int main(int argc, char *argv[])
 		else if (r == -1)
 			break;
 
-		//struct eth_header *rcv_resp = (struct eth_header *) buffer;
+		struct eth_header *rcv_resp = (struct eth_header *) buffer;
 		struct arp_header *arp_req = (struct arp_header *) (buffer + ETH2_HEADER_LEN);
 
 		/* Check the received packet */
@@ -206,22 +208,22 @@ int main(int argc, char *argv[])
 		if (ft_memcmp(&sender_ip.s_addr, &st_data[1].ip.s_addr, 4)) continue;
 		if (ft_memcmp(st_data[1].mac, arp_req->ar_sha, 6)) continue;
 
-
-		printf("An ARP request has been broadcast.\n");
-		printf("\tmac address of request: %02x:%02x:%02x:%02x:%02x:%02x\n",
-					arp_req->ar_sha[0],
-					arp_req->ar_sha[1],
-					arp_req->ar_sha[2],
-					arp_req->ar_sha[3],
-					arp_req->ar_sha[4],
-					arp_req->ar_sha[5]);
-		char str[INET_ADDRSTRLEN];
-		if (inet_ntop(AF_INET, &sender_ip, str, INET_ADDRSTRLEN) == NULL) {
-			err("inet_ntop", strerror(errno));
-			continue;
+		if (g_program.verbose) {
+			print_packet(rcv_resp, arp_req, ARP_REQUEST);
 		}
-		else
-			printf("\tip address of request:  %s\n", str);
+		else {
+			printf("An ARP request has been broadcast.\n");
+			printf("\tmac address of request: ");
+			print_mac(arp_req->ar_sha);
+			char str[INET_ADDRSTRLEN];
+			if (inet_ntop(AF_INET, &sender_ip, str, INET_ADDRSTRLEN) == NULL)
+			{
+				err("inet_ntop", strerror(errno));
+				continue;
+			}
+			else
+				printf("\tip address of request:  %s\n", str);
+		}
 
 		if (send_reply(st_data, if_index, packet_socket) == 1)
 			break;
